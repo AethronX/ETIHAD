@@ -15,6 +15,20 @@ keyboard in Chromium (tools/audit/probe.js), not inferred from the markup.
                          one hiding mechanism that also drops descendants out
                          of the tab order.
 
+  Mobile drawer broken   That same collapse rule is written for the desktop
+                         rail but was never scoped to desktop, so on a phone it
+                         also applied to the off-canvas drawer -- which is
+                         driven by `data-drawer`, not `data-nav`. Opening the
+                         drawer slid a panel into view that was still
+                         `opacity: 0; pointer-events: none`: invisible, and
+                         taps fell straight through it to the backdrop, which
+                         closed it again. The sidebar has been unusable on
+                         phones since 3260a51 made `mini` the default, because
+                         that default is what put every phone on the path.
+                         The rule is now confined to `min-width: 1081px`; on
+                         mobile the drawer's own rules already hide it when
+                         closed and show it when open.
+
   2.4.3 Focus Order      The four overlays declare `aria-modal="true"`, which
                          hides the background from screen readers but does
                          nothing to keyboard focus. Tab escaped the open
@@ -113,11 +127,14 @@ TRAP_FOCUS_JS = """
 # (description, old, new, expected_occurrences)
 EDITS = [
     (
-        "drop the collapsed sidebar out of the tab order (WCAG 2.4.3)",
-        'body[data-nav="mini"] aside[data-nav-panel]'
-        ' { opacity: 0; pointer-events: none; }',
-        'body[data-nav="mini"] aside[data-nav-panel]'
-        ' { opacity: 0; pointer-events: none; visibility: hidden; }',
+        "confine the desktop collapse to desktop, and drop it out of the"
+        " tab order there (WCAG 2.4.3)",
+        '    body[data-nav="mini"] aside[data-nav-panel]'
+        ' { opacity: 0; pointer-events: none; }\n',
+        '    @media (min-width: 1081px) {\n'
+        '      body[data-nav="mini"] aside[data-nav-panel]'
+        ' { opacity: 0; pointer-events: none; visibility: hidden; }\n'
+        '    }\n',
         1,
     ),
     (
@@ -174,6 +191,18 @@ EDITS = [
         "      if ((e.ctrlKey || e.metaKey) && k === 'b')"
         " { e.preventDefault(); this.toggleNav(); }\n"
         "      if (e.key === 'Tab') this.trapFocus(e);",
+        1,
+    ),
+    (
+        "make the drawer's own hide button close the drawer on mobile",
+        "  toggleNav() {\n"
+        "    const mini = !this.state.mini;",
+        "  toggleNav() {\n"
+        "    // `mini` is the desktop rail state and has no effect on a phone,\n"
+        "    // where the panel is an off-canvas drawer. Without this the\n"
+        '    // drawer\'s own "إخفاء القائمة" button was inert on mobile.\n'
+        "    if (this.state.isMobile) { this.setDrawer(false); return; }\n"
+        "    const mini = !this.state.mini;",
         1,
     ),
     (

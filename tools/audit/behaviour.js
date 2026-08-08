@@ -116,15 +116,70 @@ const dialogOpen = (page, label) => page.evaluate((l) => {
   const m = await mob.newPage();
   await m.goto(URL, { waitUntil: 'load' });
   await m.waitForTimeout(1500);
-  const mobReach = () => m.evaluate(() => Array.from(
-    document.querySelectorAll('aside[data-nav-panel] button')
-  ).filter((b) => getComputedStyle(b).visibility !== 'hidden').length);
-  const shut = await mobReach();
-  await m.evaluate(() => document.querySelector('[data-hamburger]').click());
+
+  // Usable, not merely present. An earlier version of this test only checked
+  // `visibility`, and passed while the drawer slid into view at opacity 0 with
+  // pointer-events: none -- invisible, and taps fell through it to the
+  // backdrop, which closed it again.
+  const drawerState = () => m.evaluate(() => {
+    const a = document.querySelector('aside[data-nav-panel]');
+    const s = getComputedStyle(a);
+    const r = a.getBoundingClientRect();
+    return {
+      onScreen: Math.round(r.x) === 0 && r.width > 100,
+      visible: s.visibility !== 'hidden',
+      opaque: parseFloat(s.opacity) > 0.95,
+      clickable: s.pointerEvents !== 'none',
+      reachable: Array.from(a.querySelectorAll('button'))
+        .filter((b) => getComputedStyle(b).visibility !== 'hidden').length,
+    };
+  });
+
+  const shut = await drawerState();
+  assert('mobile drawer is out of the tab order when closed',
+    shut.reachable === 0 && !shut.onScreen, JSON.stringify(shut));
+
+  const ham = await m.evaluate(() => {
+    const h = document.querySelector('[data-hamburger]');
+    const r = h.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  });
+  await m.touchscreen.tap(ham.x, ham.y);
   await m.waitForTimeout(700);
-  const open = await mobReach();
-  assert('mobile drawer is out of the tab order when closed', shut === 0, 'reachable=' + shut);
-  assert('mobile drawer is reachable when open', open > 20, 'reachable=' + open);
+  const open = await drawerState();
+  assert('mobile drawer opens on a real tap',
+    open.onScreen && open.visible, JSON.stringify(open));
+  assert('mobile drawer is actually visible and tappable when open',
+    open.opaque && open.clickable, JSON.stringify(open));
+  assert('mobile drawer nav is reachable when open',
+    open.reachable > 20, 'reachable=' + open.reachable);
+
+  // Tapping a nav item must navigate, not fall through to the backdrop.
+  const before = await m.evaluate(() => (document.querySelector('main h1') || {}).textContent);
+  const item = await m.evaluate(() => {
+    const b = Array.from(document.querySelectorAll('aside[data-nav-panel] nav button'))
+      .find((x) => (x.textContent || '').includes('الفواتير'));
+    const r = b.getBoundingClientRect();
+    return { x: r.x + r.width / 2, y: r.y + r.height / 2 };
+  });
+  await m.touchscreen.tap(item.x, item.y);
+  await m.waitForTimeout(900);
+  const after = await m.evaluate(() => (document.querySelector('main h1') || {}).textContent);
+  assert('tapping a drawer item navigates', before !== after, `"${before}" -> "${after}"`);
+
+  // The drawer's own hide button is a desktop rail toggle; on a phone it has
+  // to close the drawer or it does nothing at all.
+  await m.touchscreen.tap(ham.x, ham.y);
+  await m.waitForTimeout(700);
+  await m.evaluate(() => {
+    const b = Array.from(document.querySelectorAll('aside[data-nav-panel] button'))
+      .find((x) => (x.textContent || '').includes('إخفاء القائمة'));
+    b.click();
+  });
+  await m.waitForTimeout(700);
+  const hidden = await drawerState();
+  assert('the drawer hide button closes the drawer on mobile',
+    !hidden.onScreen && hidden.reachable === 0, JSON.stringify(hidden));
 
   await browser.close();
   console.log('\n' + (failures ? failures + ' assertion(s) failed.' : 'All behaviour checks passed.'));

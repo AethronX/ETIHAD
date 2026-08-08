@@ -15,10 +15,22 @@ white on the fill measured 3.88:1, and the same blue as link text measured
 Light theme needs no split -- #0F4C81 already clears both directions -- so
 --p-text simply resolves to the same value there.
 
+Brand-as-text is written two ways in this file and both have to be routed:
+`color: var(--p)` inside a style attribute, and `color: 'var(--p)'` inside a
+JavaScript style object. The second form is where every "selected" state lives
+-- active tab, sorted column, chosen saved view, current role, current
+workspace, active bottom-nav item -- so in dark theme those all measured
+3.32:1 against their own card. They are invisible to an audit of the default
+view because nothing is selected until the user selects it.
+
+Only the `color:` property is rewritten. `--p` stays correct as a border or
+background fill, where the 3:1 non-text threshold applies instead.
+
 Usage:  python3 tools/patches/brand_text_token.py
 """
 
 import os
+import re
 import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
@@ -33,6 +45,9 @@ LIGHT_NEW = "      --p: #0F4C81; --p-600: #0d4270; --p-tint: #E8F0F7; --p-text: 
 
 DARK_OLD = "      --p: #3D86C4; --p-600: #4E97D4; --p-tint: #14273C; --p2: #22C7E6;"
 DARK_NEW = "      --p: #33739F; --p-600: #4E97D4; --p-tint: #14273C; --p2: #22C7E6; --p-text: #7FB6E4;"
+
+JS_BRAND_TEXT = re.compile(r"(color: (?:[^,{}\n]*?\? )?)'var\(--p\)'")
+JS_BRAND_TEXT_COUNT = 11
 
 
 def apply(inner):
@@ -50,7 +65,18 @@ def apply(inner):
     if n == 0:
         raise SystemExit("no brand-as-text usages found")
     inner = inner.replace("color: var(--p)", "color: var(--p-text)")
-    applied.append("route %d brand-as-text usages through --p-text" % n)
+    applied.append("route %d css brand-as-text usages through --p-text" % n)
+
+    # The JS style-object form: `color: cond ? 'var(--p)' : 'var(--t1)'`.
+    # Anchored on the `color:` property so border and background uses of --p,
+    # which are judged against the 3:1 non-text threshold, are left alone.
+    inner, m = JS_BRAND_TEXT.subn(r"\1'var(--p-text)'", inner)
+    if m != JS_BRAND_TEXT_COUNT:
+        raise SystemExit(
+            "expected %d js brand-as-text usages, rewrote %d"
+            % (JS_BRAND_TEXT_COUNT, m)
+        )
+    applied.append("route %d js brand-as-text usages through --p-text" % m)
     return inner, applied
 
 
