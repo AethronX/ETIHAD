@@ -106,7 +106,7 @@ rail but never scoped, so on a phone it also hit the off-canvas drawer — which
 `data-drawer` controls, not `data-nav`. Opening the drawer slid a fully
 transparent, click-through panel into view, and taps landed on the backdrop,
 which closed it again. The sidebar was unusable on phones from `3260a51` until
-`e5be62e`. That rule now lives inside `@media (min-width: 1081px)`.
+`e31556f`. That rule now lives inside `@media (min-width: 1081px)`.
 
 State that only exists in one layout needs a control that works in that
 layout: `toggleNav` flips `mini`, which does nothing on a phone, so it now
