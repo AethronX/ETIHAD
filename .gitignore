@@ -10,3 +10,4 @@ tools/deck/assets/
 tools/deck/fonts/
 tools/deck/*.pptx
 tools/deck/*.pdf
+tools/site/*.png
