@@ -20,9 +20,27 @@ Usage
     python3 tools/apply.py path/to/new-export.html
 
 On success it rewrites index.html and Etihad_ERP.html, refreshes the stored
-baseline, and prints which customizations it verified. On conflict it writes
-the conflicted inner document to tools/.conflict.html and stops without
-touching the site, so nothing is half-applied.
+baseline, and prints which customizations it verified.
+
+On conflict it writes the conflicted application document -- readable HTML, not
+the one-line bundle -- to tools/.conflict.html and stops without touching the
+site. Resolve the markers there, then finish with:
+
+    python3 tools/apply.py --resolved
+
+which re-encodes it into the new export's bundle, re-checks it, and only then
+writes. There is deliberately no way to skip that second check: a resolution
+that drops a customization is exactly the failure this tool exists to prevent.
+
+The conflict that recurs is the bundled asset id in <head> -- every export
+mints a new uuid, and the Supabase bootstrap sits directly beneath it. Keep the
+NEW export's id and re-add the Supabase block below it.
+
+Neither path writes the site until tools/checks.py passes, and neither proves
+the page still works. Open it in a browser before pushing, and run:
+
+    node tools/audit/a11y.js
+    node tools/audit/behaviour.js
 """
 
 import os
@@ -40,6 +58,10 @@ TOOLS = os.path.join(ROOT, "tools")
 BASELINE = os.path.join(TOOLS, "baseline", "export.html")
 TARGETS = ("index.html", "Etihad_ERP.html")
 CONFLICT = os.path.join(TOOLS, ".conflict.html")
+# The raw export is kept beside the conflict so `--resolved` can refresh the
+# baseline without the operator having to remember the download path.
+CONFLICT_EXPORT = os.path.join(TOOLS, ".conflict-export.html")
+MARKERS = ("<<<<<<<", "=======", ">>>>>>>")
 
 
 def merge(base, ours, theirs):
@@ -59,10 +81,60 @@ def merge(base, ours, theirs):
         return fh.read(), result.returncode != 0
 
 
+def publish(rebuilt, export_text):
+    """Verify a candidate bundle, then write the site and refresh the baseline."""
+    inner = bundle.verify(rebuilt)
+    report = checks.run(inner)
+    if report.failed:
+        print("These customizations are missing from the result:")
+        for name, why in report.failed:
+            print("  MISSING  %s -- %s" % (name, why))
+        print("\nRefusing to write.")
+        return 1
+
+    for target in TARGETS:
+        bundle.write(os.path.join(ROOT, target), rebuilt)
+    bundle.write(BASELINE, export_text)
+    for path in (CONFLICT, CONFLICT_EXPORT):
+        if os.path.exists(path):
+            os.remove(path)
+
+    print("Kept all %d customizations:" % len(report.passed))
+    for name in report.passed:
+        print("  ok  %s" % name)
+    print("\nWrote %s and refreshed the baseline." % ", ".join(TARGETS))
+    print("Now open the page in a browser, then run:")
+    print("  node tools/audit/a11y.js")
+    print("  node tools/audit/behaviour.js")
+    return 0
+
+
+def resume():
+    """Finish an export whose conflict markers have been resolved by hand."""
+    for path in (CONFLICT, CONFLICT_EXPORT):
+        if not os.path.exists(path):
+            print("nothing to resume: %s does not exist" % path)
+            print("run `python3 tools/apply.py path/to/new-export.html` first")
+            return 1
+
+    inner = bundle.read(CONFLICT)
+    left = [m for m in MARKERS if m in inner]
+    if left:
+        print("unresolved merge markers still in %s: %s" % (CONFLICT, ", ".join(left)))
+        print("resolve them, then re-run this command")
+        return 1
+
+    export_text = bundle.read(CONFLICT_EXPORT)
+    return publish(bundle.set_template(export_text, inner), export_text)
+
+
 def main(argv):
-    if len(argv) != 2:
+    if len(argv) == 2 and argv[1] == "--resolved":
+        return resume()
+    if len(argv) != 2 or argv[1].startswith("-"):
         print(__doc__)
         return 2
+
     new_export = argv[1]
     for path in (new_export, BASELINE, os.path.join(ROOT, "index.html")):
         if not os.path.exists(path):
@@ -75,37 +147,24 @@ def main(argv):
     theirs = bundle.get_template(theirs_text)
 
     merged, conflicted = merge(base, ours, theirs)
+
     if conflicted:
+        # The operator edits the readable application document; the raw export
+        # is stashed beside it so --resolved can rebuild the bundle and refresh
+        # the baseline without being told the download path again.
         bundle.write(CONFLICT, merged)
+        bundle.write(CONFLICT_EXPORT, theirs_text)
         print("MERGE CONFLICT -- nothing was written to the site.")
-        print("Resolve the markers in %s, then re-run with that file." % CONFLICT)
+        print("Resolve the markers in:")
+        print("  %s" % CONFLICT)
+        print("then run: python3 tools/apply.py --resolved")
         print("\nThe usual conflict is the bundled asset id in <head>:")
-        print("keep the NEW export's id and re-add the customizations below it.")
+        print("keep the NEW export's id and re-add the Supabase block below it.")
         return 1
 
     # The new export supplies the loader and asset manifest; only the inner
     # application document carries merged content.
-    rebuilt = bundle.set_template(theirs_text, merged)
-
-    inner = bundle.verify(rebuilt)
-    report = checks.run(inner)
-    if report.failed:
-        print("Merge succeeded but these customizations went missing:")
-        for name, why in report.failed:
-            print("  MISSING  %s -- %s" % (name, why))
-        print("\nRefusing to write. Inspect %s" % CONFLICT)
-        bundle.write(CONFLICT, merged)
-        return 1
-
-    for target in TARGETS:
-        bundle.write(os.path.join(ROOT, target), rebuilt)
-    bundle.write(BASELINE, theirs_text)
-
-    print("Applied new export and kept %d customizations:" % len(report.passed))
-    for name in report.passed:
-        print("  ok  %s" % name)
-    print("\nWrote %s and refreshed the baseline." % ", ".join(TARGETS))
-    return 0
+    return publish(bundle.set_template(theirs_text, merged), theirs_text)
 
 
 if __name__ == "__main__":
