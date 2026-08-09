@@ -191,6 +191,13 @@ CHECKS = (
         lambda s: "logout: () => { window.location.href = '/'; }" in s
         and "تسجيل الخروج" in s,
     ),
+    (
+        "sidebar matches the public site's brand navy",
+        "the nav rail used generic slate (#0F172A/#1E293B) instead of the"
+        " #051C4A/#0A2A63 the website, the logo and tools/subframe/01-theme.md"
+        " all agree on",
+        lambda s: "--side: #051C4A; --side-h: #0A2A63;" in s,
+    ),
 )
 
 
