@@ -62,7 +62,8 @@ pull it into the current paths with `git show` rather than `git checkout`:
 git show 167d336:index.html > erp/index.html
 git show 167d336:index.html > erp/Etihad_ERP.html
 for p in a11y badge_tokens brand_text_token keyboard semantics sweep \
-         logout_button sidebar_navy i18n_foundation dashboard_reorg; do
+         logout_button sidebar_navy i18n_foundation dashboard_reorg \
+         header_logout_button erp_head_meta enterprise_table_system; do
   python3 tools/patches/$p.py || break
 done
 ```
@@ -101,7 +102,7 @@ Before pushing, open it in a browser and run both audits below.
 
 ## What is customized
 
-Thirty-two customizations are asserted by `tools/checks.py`. Add a check there
+Thirty-four customizations are asserted by `tools/checks.py`. Add a check there
 whenever you add another, or the next export will quietly drop it. Every check
 fails against the file as it stood before its fix, so none of them is a
 tautology — verify that with `git show <commit>:erp/index.html` if you add one.
@@ -124,6 +125,17 @@ tautology — verify that with `git show <commit>:erp/index.html` if you add one
   (Shipments & Containers, Financial Performance, Warehouse Operations, Your
   Work Today) instead of the original theme-mixed ordering — see
   `tools/patches/dashboard_reorg.py`
+- An enterprise table system on the 23 generic-page tables (`po`, `cnwh`,
+  `containers`, `shipping`, `omwh`, `inv`, `acct`, `docs`, `reports`,
+  `customers`, `sales`, `invoices`, `suppliers`, `cnoffice`, `clearance`,
+  `analytics`, `notifications`, `audit`, `permissions`, `integrations`,
+  `health`, `team`, `settings`): clickable column-sort headers with a
+  numeric-aware comparator (`smartCompare`, so `"¥ 184,600"` and `"94%"`
+  sort correctly rather than lexicographically) and numbered pagination
+  (8 rows/page), matching the feature set the quotes list already had.
+  Deliberately does not add bulk actions (no defined action semantics for
+  23 unrelated modules) or column-visibility toggles (a separate UI surface)
+  — see `tools/patches/enterprise_table_system.py`
 - A real page title (`نظام اتحاد لإدارة الموارد`, not the exporter's generic
   "Bundled Page") and `<meta name="robots" content="noindex, nofollow">` in
   the loader shell's `<head>` — deliberately non-indexable, since this is an

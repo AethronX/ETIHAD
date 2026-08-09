@@ -223,6 +223,15 @@ CHECKS = (
         and "zone_warehouse" in s
         and "zone_your_work" in s,
     ),
+    (
+        "generic tables have sort and pagination",
+        "the 23 non-quotes modules (po, cnwh, containers, acct, ...) had"
+        " search and filter chips but no column sort or pagination -- the"
+        " quotes list was the only full-featured table",
+        lambda s: "genSortCol" in s
+        and "smartCompare(a.cells[sortCol].v" in s
+        and "page.pager" in s,
+    ),
 )
 
 
