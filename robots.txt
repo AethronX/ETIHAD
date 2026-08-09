@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+Allow: /en/
+Allow: /zh/
+Disallow: /erp/
+
+Sitemap: https://etihad-rho.vercel.app/sitemap.xml

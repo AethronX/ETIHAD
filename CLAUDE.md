@@ -14,10 +14,17 @@ work):
 | `/en/` | `en/index.html` | public homepage, English |
 | `/zh/` | `zh/index.html` | public homepage, Chinese |
 | `/erp/` | `erp/index.html` | the internal ERP |
+| `/robots.txt` | `robots.txt` | allows `/`, `/en/`, `/zh/`; disallows `/erp/` |
+| `/sitemap.xml` | `sitemap.xml` | the three public pages, with hreflang annotations |
 
 The homepage's own "تسجيل الدخول" links point at `/erp/`. All three homepage
 languages are static, hand-translated exports from Lovable — see
-`website/README.md`.
+`website/README.md`. `canonical`, `hreflang`, and `og:url` on all three use
+the absolute `https://etihad-rho.vercel.app` origin — Lighthouse's SEO audit
+fails both `canonical` and `hreflang` outright on a relative URL, no matter
+how correct the path is. Verified 100/100 on Lighthouse SEO, mobile and
+desktop, for all three public pages after that fix (`npx lighthouse` against
+a local static server, `--only-categories=seo`).
 
 ## Read this before editing erp/index.html
 
@@ -117,6 +124,13 @@ tautology — verify that with `git show <commit>:erp/index.html` if you add one
   (Shipments & Containers, Financial Performance, Warehouse Operations, Your
   Work Today) instead of the original theme-mixed ordering — see
   `tools/patches/dashboard_reorg.py`
+- A real page title (`نظام اتحاد لإدارة الموارد`, not the exporter's generic
+  "Bundled Page") and `<meta name="robots" content="noindex, nofollow">` in
+  the loader shell's `<head>` — deliberately non-indexable, since this is an
+  internal system. Applied via `tools/patches/erp_head_meta.py`, which is
+  the one patch in this directory that edits the raw file text instead of
+  the `__bundler/template` payload — `checks.py` can't see it (it only ever
+  inspects the decoded template), so this one isn't checks-guarded
 - Accessibility, applied by `tools/patches/*.py` and measured by
   `tools/audit/*.js` — see below
 
