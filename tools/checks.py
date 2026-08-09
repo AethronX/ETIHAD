@@ -208,6 +208,15 @@ CHECKS = (
         and "kpi_overdue_receivables" in s
         and "阿曼仓库" in s,
     ),
+    (
+        "dashboard grouped into themed zones",
+        "financial charts, warehouse widgets and shipment widgets were each"
+        " split across unrelated rows instead of sitting together",
+        lambda s: "zone_shipments" in s
+        and "zone_financial" in s
+        and "zone_warehouse" in s
+        and "zone_your_work" in s,
+    ),
 )
 
 
