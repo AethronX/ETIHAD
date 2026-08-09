@@ -198,6 +198,16 @@ CHECKS = (
         " all agree on",
         lambda s: "--side: #051C4A; --side-h: #0A2A63;" in s,
     ),
+    (
+        "trilingual sidebar and dashboard chrome",
+        "the language switcher on the public homepage links here, but the ERP"
+        " had zero i18n infrastructure -- the sidebar and dashboard headline"
+        " strings now route through t() with an ar/en/zh dictionary",
+        lambda s: "toggleLang()" in s
+        and "grp_overview" in s
+        and "kpi_overdue_receivables" in s
+        and "阿曼仓库" in s,
+    ),
 )
 
 
