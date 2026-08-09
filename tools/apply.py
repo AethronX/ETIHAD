@@ -56,7 +56,7 @@ import checks  # noqa: E402
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 TOOLS = os.path.join(ROOT, "tools")
 BASELINE = os.path.join(TOOLS, "baseline", "export.html")
-TARGETS = ("index.html", "Etihad_ERP.html")
+TARGETS = ("erp/index.html", "erp/Etihad_ERP.html")
 CONFLICT = os.path.join(TOOLS, ".conflict.html")
 # The raw export is kept beside the conflict so `--resolved` can refresh the
 # baseline without the operator having to remember the download path.
@@ -136,13 +136,13 @@ def main(argv):
         return 2
 
     new_export = argv[1]
-    for path in (new_export, BASELINE, os.path.join(ROOT, "index.html")):
+    for path in (new_export, BASELINE, os.path.join(ROOT, "erp", "index.html")):
         if not os.path.exists(path):
             print("missing: %s" % path)
             return 1
 
     base = bundle.get_template(bundle.read(BASELINE))
-    ours = bundle.get_template(bundle.read(os.path.join(ROOT, "index.html")))
+    ours = bundle.get_template(bundle.read(os.path.join(ROOT, "erp", "index.html")))
     theirs_text = bundle.read(new_export)
     theirs = bundle.get_template(theirs_text)
 

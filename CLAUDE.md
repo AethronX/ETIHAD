@@ -1,15 +1,36 @@
 # Etihad ERP — working notes
 
-## Read this before editing index.html
+## What lives where
 
-`index.html` and `Etihad_ERP.html` are **generated output**, not source. They
-are exports from a visual builder: a small loader plus four
+One Vercel deployment now serves both the public site and the internal
+system, split by literal file path — no build step, no `vercel.json`
+rewrites (that was tried first and silently didn't take effect for the
+bare root path on this project; file placement is the one thing proven to
+work):
+
+| path | file | what it is |
+| --- | --- | --- |
+| `/` | `index.html` | public homepage, Arabic |
+| `/en/` | `en/index.html` | public homepage, English |
+| `/zh/` | `zh/index.html` | public homepage, Chinese |
+| `/erp/` | `erp/index.html` | the internal ERP |
+
+The homepage's own "تسجيل الدخول" links point at `/erp/`. All three homepage
+languages are static, hand-translated exports from Lovable — see
+`website/README.md`.
+
+## Read this before editing erp/index.html
+
+`erp/index.html` and `erp/Etihad_ERP.html` are **generated output**, not
+source. They are exports from a visual builder: a small loader plus four
 `<script type="__bundler/...">` JSON blocks, with the whole application living
 as an escaped string inside the `template` block. The `sc-for`, `sc-if` and
 `sc-camel-on-click` tags are that builder's template language.
 
 The two files are byte-identical on purpose. `Etihad_ERP.html` is the named
-export; `index.html` is the copy Vercel serves at the root route.
+export; `index.html` is the copy that was, until this repo grew a public
+homepage, also what Vercel served at the root route. It now lives under
+`erp/` instead — see "What lives where" above.
 
 ### Why this matters
 
@@ -27,11 +48,14 @@ in review.
 ## Applying a new export
 
 Every hand-written change lives in `tools/patches/*.py`, applied in this order
-against the raw export at `167d336`:
+against the raw export at `167d336`. That commit predates the `erp/` move, so
+pull it into the current paths with `git show` rather than `git checkout`:
 
 ```bash
-git checkout 167d336 -- index.html Etihad_ERP.html
-for p in a11y badge_tokens brand_text_token keyboard semantics sweep; do
+git show 167d336:index.html > erp/index.html
+git show 167d336:index.html > erp/Etihad_ERP.html
+for p in a11y badge_tokens brand_text_token keyboard semantics sweep \
+         logout_button sidebar_navy i18n_foundation dashboard_reorg; do
   python3 tools/patches/$p.py || break
 done
 ```
@@ -70,10 +94,10 @@ Before pushing, open it in a browser and run both audits below.
 
 ## What is customized
 
-Twenty-eight customizations are asserted by `tools/checks.py`. Add a check there
+Thirty-two customizations are asserted by `tools/checks.py`. Add a check there
 whenever you add another, or the next export will quietly drop it. Every check
 fails against the file as it stood before its fix, so none of them is a
-tautology — verify that with `git show <commit>:index.html` if you add one.
+tautology — verify that with `git show <commit>:erp/index.html` if you add one.
 
 - Supabase client + the `metric_entries` manual-metrics layer (editable daily
   revenue, inventory value, overdue receivables KPIs). The bootstrap is wrapped
@@ -81,6 +105,18 @@ tautology — verify that with `git show <commit>:index.html` if you add one.
   CDN must not throw before the app boots.
 - Sidebar collapsed by default
 - Receivables labelled مستحقات rather than ذمم
+- Sidebar surfaces (`--side`/`--side-h`) in the same brand navy
+  (`#051C4A`/`#0A2A63`) the public homepage uses, not generic slate
+- A sign-out control in the profile menu, navigating to `/`
+- A trilingual (ar/en/zh) foundation: `T` dictionary, `t()`/`toggleLang()`,
+  wired through the sidebar (7 groups, 30 modules) and the dashboard's
+  greeting/KPIs/buttons. The other ~26 modules' own content is still
+  Arabic-only, and direction stays RTL in every language — see
+  `tools/patches/i18n_foundation.py` for why
+- The dashboard's ten sections regrouped into five labeled zones by theme
+  (Shipments & Containers, Financial Performance, Warehouse Operations, Your
+  Work Today) instead of the original theme-mixed ordering — see
+  `tools/patches/dashboard_reorg.py`
 - Accessibility, applied by `tools/patches/*.py` and measured by
   `tools/audit/*.js` — see below
 
@@ -149,7 +185,8 @@ dashboard. Re-measure after changing any colour.
 ## Deployment
 
 Vercel builds from `main` only. Work on a branch, but production does not move
-until `main` does.
+until `main` does. No build command, no framework preset — the deployment is
+the repo's file tree, served as static files (see "What lives where" above).
 
 ## Local checks
 
@@ -159,7 +196,7 @@ Three layers, and they answer different questions.
 
 ```bash
 python3 -c "import sys; sys.path.insert(0,'tools'); import bundle, checks; \
-  print(checks.run(bundle.verify(bundle.read('index.html'))))"
+  print(checks.run(bundle.verify(bundle.read('erp/index.html'))))"
 ```
 
 `bundle.verify()` is the important one: it catches a literal `</script>` in the
@@ -175,7 +212,7 @@ node tools/audit/behaviour.js   # keyboard and pointer: skip link, focus, drawer
 node tools/audit/pages.js       # all 30 pages x 2 themes x 2 widths
 ```
 
-All three need Playwright and drive real Chromium against `file://index.html` —
+All three need Playwright and drive real Chromium against `file://erp/index.html` —
 set `CHROME_PATH` if Chromium is not on Playwright's default search path. All
 three exit non-zero on failure, so they gate a release. They currently report
 **zero** findings; a non-zero reading means the page regressed, not that the

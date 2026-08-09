@@ -38,7 +38,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import bundle  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TARGETS = ("index.html", "Etihad_ERP.html")
+TARGETS = ("erp/index.html", "erp/Etihad_ERP.html")
 
 LIGHT_OLD = "      --p: #0F4C81; --p-600: #0d4270; --p-tint: #E8F0F7;"
 LIGHT_NEW = "      --p: #0F4C81; --p-600: #0d4270; --p-tint: #E8F0F7; --p-text: #0F4C81;"
@@ -81,7 +81,7 @@ def apply(inner):
 
 
 def main():
-    src = bundle.read(os.path.join(ROOT, "index.html"))
+    src = bundle.read(os.path.join(ROOT, "erp", "index.html"))
     inner, applied = apply(bundle.get_template(src))
     out = bundle.set_template(src, inner)
     bundle.verify(out)

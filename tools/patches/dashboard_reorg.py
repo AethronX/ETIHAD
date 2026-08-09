@@ -40,7 +40,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."
 import bundle  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-TARGETS = ("index.html", "Etihad_ERP.html")
+TARGETS = ("erp/index.html", "erp/Etihad_ERP.html")
 
 ZONE_DICT_OLD = "    lang_label: { ar: 'اللغة', en: 'Language', zh: '语言' },\n  };"
 ZONE_DICT_NEW = (
@@ -740,7 +740,7 @@ def apply(inner):
 
 
 def main():
-    src = bundle.read(os.path.join(ROOT, "index.html"))
+    src = bundle.read(os.path.join(ROOT, "erp", "index.html"))
     inner, applied = apply(bundle.get_template(src))
     out = bundle.set_template(src, inner)
     bundle.verify(out)

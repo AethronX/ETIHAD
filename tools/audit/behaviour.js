@@ -3,7 +3,7 @@
  * Drives the page with a real keyboard and pointer and asserts the
  * interactions that a static budget cannot see.
  *
- *   node tools/audit/behaviour.js               # test ./index.html
+ *   node tools/audit/behaviour.js               # test ./erp/index.html
  *   node tools/audit/behaviour.js path/to.html
  *
  * Requires Playwright. Set CHROME_PATH if Chromium is not on the default
@@ -13,7 +13,7 @@
 const path = require('path');
 const { chromium } = require('playwright');
 
-const target = process.argv[2] || path.join(__dirname, '..', '..', 'index.html');
+const target = process.argv[2] || path.join(__dirname, '..', '..', 'erp', 'index.html');
 const URL = /^https?:/.test(target) ? target : 'file://' + path.resolve(target);
 const EXECUTABLE = process.env.CHROME_PATH || undefined;
 

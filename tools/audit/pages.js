@@ -16,7 +16,7 @@
  *
  * Each of those measured zero on the dashboard and non-zero here.
  *
- *   node tools/audit/pages.js               # audit ./index.html
+ *   node tools/audit/pages.js               # audit ./erp/index.html
  *   node tools/audit/pages.js path/to.html
  *
  * Requires Playwright. Set CHROME_PATH if Chromium is not on the default
@@ -27,7 +27,7 @@ const path = require('path');
 const { chromium } = require('playwright');
 const collect = require('./collect');
 
-const target = process.argv[2] || path.join(__dirname, '..', '..', 'index.html');
+const target = process.argv[2] || path.join(__dirname, '..', '..', 'erp', 'index.html');
 const URL = /^https?:/.test(target) ? target : 'file://' + path.resolve(target);
 const EXECUTABLE = process.env.CHROME_PATH || undefined;
 
