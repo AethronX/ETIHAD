@@ -184,6 +184,13 @@ CHECKS = (
         lambda s: "window.supabaseClient = window.supabase.createClient" in s
         and re.search(r"try \{\s*window\.supabaseClient", s) is not None,
     ),
+    (
+        "sign-out control",
+        "the homepage links تسجيل الدخول to /erp, but nothing inside the ERP"
+        " could navigate back out",
+        lambda s: "logout: () => { window.location.href = '/'; }" in s
+        and "تسجيل الخروج" in s,
+    ),
 )
 
 
