@@ -189,7 +189,13 @@ CHECKS = (
         "the homepage links تسجيل الدخول to /erp, but nothing inside the ERP"
         " could navigate back out",
         lambda s: "logout: () => { window.location.href = '/'; }" in s
-        and "تسجيل الخروج" in s,
+        and "logout_label" in s,
+    ),
+    (
+        "sign-out is directly visible in the header",
+        "the only exit was inside the profile dropdown, reported as"
+        " \"there's no sign-out button\" because nothing hinted it was there",
+        lambda s: 'sc-camel-on-click="{{ logout }}" title="{{ logoutLabel }}"' in s,
     ),
     (
         "sidebar matches the public site's brand navy",
